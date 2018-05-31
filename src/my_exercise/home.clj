@@ -1,7 +1,10 @@
 (ns my-exercise.home
   (:require [hiccup.page :refer [html5]]
             [ring.util.anti-forgery :refer [anti-forgery-field]]
-            [my-exercise.us-state :as us-state]))
+            [my-exercise.us-state :as us-state]
+            [ring.util.codec :as codec]
+            [ring.util.request :as req]
+            ))
 
 (defn header [_]
   [:head
@@ -11,90 +14,36 @@
    [:title "Find my next election"]
    [:link {:rel "stylesheet" :href "default.css"}]])
 
-(defn getting-started [_]
-  [:div {:class "getting-started"}
-   [:h1 "Getting started"]
-   [:p "Thank you for applying to work at Democracy Works! "
-    "This coding exercise is designed to show off your ability to program web applications in Clojure. "
-    "You should spend no more than 2 hours on it and then turn it in to us "
-    "by running the command " [:code "lein submit"] " and following the instructions it prints out. "
-    "While we will be evaluating how much of the project you complete, we know that 2 hours isn't enough time to do a "
-    "thorough and complete job on all of it, and we're not expecting you to. We just want to see what you get working "
-    "in that amount of time."]
-   [:p "It is a server-side web application written in Clojure and using the "
-    [:a {:href "https://github.com/ring-clojure/ring"} "Ring"] ", "
-    [:a {:href "https://github.com/weavejester/compojure"} "Compojure"] ", and "
-    [:a {:href "https://github.com/weavejester/hiccup"} "Hiccup"] " libraries."
-    "You should feel free to use other libraries as you see fit."]
-   [:p "Right now the form below submits to a missing route in the app. To complete the exercise, do the following:"]
-   [:ul
-    [:li "Create the missing /search route"]
-    [:li "Ingest the incoming form parameters"]
-    [:li "Derive a basic set of OCD-IDs from the address (see below for further explanation)"]
-    [:li "Retrieve upcoming elections from the Democracy Works election API using those OCD-IDs"]
-    [:li "Display any matching elections to the user"]]
-   [:p "You will get bonus points for:"
+(defn background-info [_]
+  [:div {:class "background-info"}
+    [:h2 "A little background info"]
+    [:p "Hey! Thanks for taking the time to review my application."]
+    [:p "I should let you know that I had never used Clojure before this project, as  you will probably be able to tell. "
+      "I had a small moment of panic when I tried to start the project and had to download JDK, but I think Democracy Works is pretty rad and I didn't want to throw in the towel. "
+      "Anyways, so I slugged through a few chapters of "
+        [:a {:href "https://www.braveclojure.com/"} "Clojure for the Brave and True"]
+        ", realized it was probably not neccessary to add Emacs to the situation, and then just decided to try and hack it together by trial and error. "
+      "So here is what I was able to accomplish!"]
+    [:h2 "State of the project"]
     [:ul
-     [:li "Documenting your code"]
-     [:li "Adding tests for your code"]
-     [:li "Standardizing and/or augmenting the address data to derive more OCD division IDs (e.g. county and "
-      "legislative districts)"]
-     [:li "Noting additional features or other improvements you would make if you had more time"]]]])
-
-(defn ocd-id-explainer [_]
-  [:div {:class "ocd-id-explainer"}
-   [:h2 "All about OCD-IDs"]
-   [:ul
-    [:li "OCD-IDs are "
-     [:a {:href "http://opencivicdata.readthedocs.io/en/latest/data/datatypes.html"}
-      "Open Civic Data division identifiers"]
-     " and they look like this (for the state of New Jersey): "
-     [:code "ocd-division/country:us/state:nj"]]
-    [:li "A given address can be broken down into several OCD-IDs. "
-     "For example an address in Newark, New Jersey would be associated with the following OCD-IDs:"]
+      [:li "x Create the missing /search route"]
+      [:li "x Ingest the incoming form parameters"]
+      [:li "x Derive a basic set of OCD-IDs from the address - currently only works for State and City (place)"]
+      [:li "x Retrieve upcoming elections from the Democracy Works election API using those OCD-IDs"]
+      [:li {:class "incomplete"} "Display any matching elections to the user - currently just displaying the EDN response"]]
+    [:h2 "Future of the project"]
     [:ul
-     [:li [:code "ocd-division/country:us"]]
-     [:li [:code "ocd-division/country:us/state:nj"]]
-     [:li [:code "ocd-division/country:us/state:nj/county:essex"]]
-     [:li [:code "ocd-division/country:us/state:nj/place:newark"]]]
-    [:li "Not all of those are derivable from just an address (without "
-     "running it through a standardization and augmentation service). "
-     "For example, just having a random address in Newark doesn't tell us "
-     "what county it is in. But we can derive a basic set of state and place "
-     "(i.e. city) OCD-IDs that will be a good starting point for this project. "
-     "This entails... "
-     [:ul
-      [:li "lower-casing the state abbreviation and appending it to "
-       [:code "ocd-division/country:us/state:"]]
-      [:li "creating a copy of the state OCD-ID"]
-      [:li "appending " [:code "/place:"] " to it"]
-      [:li "lower-casing the city value, replacing all spaces with underscores, and appending it to that."]]
-     "Then you should supply " [:em "both"] " OCD-IDs to your election API "
-     "request, separated by a comma as shown in the curl example below."]
-    [:li "Elections can be retrieved from the Democracy Works elections API for a set of district divisions like so:"]
-    [:ul
-     [:li [:code "curl 'https://api.turbovote.org/elections/upcoming?district-divisions=ocd-division/country:us/state:nj,ocd-division/country:us/state:nj/place:newark'"]]
-     [:li "The response will be in the "
-      [:a {:href "https://github.com/edn-format/edn"}
-       "EDN format"]
-      " (commonly used in Clojure) by default, but you can request JSON by setting your request's Accept header to 'application/json' if you prefer"]]]])
-
-(defn current-elections-link [_]
-  [:div {:class "current-elections-link"}
-   [:h2 "Current elections"]
-   [:p "Depending on the time of year and whether it's an odd or even-numbered "
-    "year, the number of elections in the system can vary wildly. "
-    "We maintain an up-to-date "
-    [:a {:href "https://github.com/democracyworks/dw-code-exercise-lein-template/wiki/Current-elections"}
-     "list of OCD-IDs that should return an election"]
-    " until the dates they are listed under. Please refer to that for example "
-    "OCD-IDs that will return an election to your app."]])
+      [:li "Display the election data in a more lovely manner"]
+      [:li "Add testing"]
+      [:li "Styling"]
+      [:li "Add error handling for non-existent places and misspellings"]
+      [:li "Generalized views for displaying upcoming elections around the country"]
+      [:li "Generalized views for displaying voter id requirements by State"]]
+   ])
 
 (defn instructions [request]
   [:div {:class "instructions"}
-   (getting-started request)
-   (ocd-id-explainer request)
-   (current-elections-link request)])
+   (background-info request)])
 
 (defn address-form [_]
   [:div {:class "address-form"}
@@ -129,7 +78,9 @@
               :name "zip"
               :size "10"}]]
     [:div.button
-     [:button {:type "submit"} "Search"]]]])
+     [:button {:type "submit"} "Search"]]
+
+     ]])
 
 (defn page [request]
   (html5
